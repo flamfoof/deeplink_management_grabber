@@ -21,7 +21,7 @@ async function DeeplinkSearchFilter() {
     var titles = fileData.split("\r\n");
     let count = 0;
     
-    for (let i = 0; i < titles.length; i++) {
+    for (let i = 0; i < titles.length;) {
         let apiLink = `https://${process.env.baseUrl}.com/search/api/${process.env.searchVersion}/web/search_by_type/${mediaType}?page=1&page_size=${maxPageSize}&q=`
         let titleChain = ""
         let titleList = []
