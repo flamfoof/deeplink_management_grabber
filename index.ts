@@ -18,42 +18,41 @@ let mediaType = process.argv[2] || "movies"
 await DeeplinkSearchFilter()
 async function DeeplinkSearchFilter() {
     let output: any[] = []
-    var titles = fileData.split("\r\n");
+    var contentLinks = fileData.split("\r\n").map((item) => { 
+        item.split(" ").forEach((word) => {
+            if(word.includes("https")) {
+                console.log(word)
+                item = word
+                return word
+            }
+        })
+        return item
+    });
+    
     let count = 0;
     
-    for (let i = 0; i < titles.length;) {
-        let apiLink = `https://${process.env.baseUrl}.com/search/api/${process.env.searchVersion}/web/search_by_type/${mediaType}?page=1&page_size=${maxPageSize}&q=`
-        let titleChain = ""
-        let titleList = []
-        for(let j = 0; j < apiTextSearchLimit; j++) {
-            let currTitle = titles[i]
-            titleList.push(currTitle)
-            i++;
-            titleChain += currTitle + (j == apiTextSearchLimit - 1 ? "" : " | ")
-        }
+    for (let i = 0; i < contentLinks.length; i++) {
+        let contentLink = contentLinks[i]
+        let apiLink = `https://${process.env.baseUrl}.com/guide/api/${process.env.apiGuideVersion}/${process.env.brandSlug}/web/${mediaType}/`
+        let apiSlugSplit = contentLink.split("/")
+        let apiSlug = apiSlugSplit[apiSlugSplit.length - 1] ? apiSlugSplit[apiSlugSplit.length - 1] : apiSlugSplit[apiSlugSplit.length - 2]
+        apiLink += apiSlug
+        console.log(`searching for ${apiLink}`)
 
-        apiLink += titleChain;
         await fetch(apiLink, apiConfig)
         .then(response => response.json())
         .then(data => {
-            let dataOut = data.results;
-            for(let j = 0; j < titleList.length; j++) {
-                let currTitle = titleList[j]
-                for(let k = 0; k < dataOut.length; k++) {
-                    let apiData = dataOut[k]
-                    if(apiData.name == currTitle) {
-                        let dataStruct = {
-                            id: count++,
-                            slugId: apiData.id,
-                            title: apiData.name,
-                            slug: apiData.slug,
-                            link: `https://${process.env.stagingUrl}.com/admin/guide/${mediaType == "movies" ? "movie" : "shows"}/${apiData.id}`
-                        }
-                        output.push(dataStruct)
-                        break;
-                    }
-                }
+            console.log(`found ${data.name} with id ${data.id}`)
+            
+            let dataOut = data;
+            let dataStruct = {
+                id: count++,
+                slugId: dataOut.id,
+                title: dataOut.name,
+                slug: dataOut.slug,
+                link: `https://${process.env.stagingUrl}.com/admin/guide/${mediaType == "movies" ? "movie" : "shows"}/${dataOut.id}`
             }
+            output.push(dataStruct)
         })
         .catch((error) => {
             console.error(error);
